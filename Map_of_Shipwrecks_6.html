@@ -1,0 +1,214 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>War by Shipwreck</title>
+
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #war-slider {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            z-index: 10;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: linear-gradient(to right, #bcc4ca, #798994); 
+            border-radius: 5px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        #war-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 13px;
+            height: 13px;
+            background: #e9ebed; 
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #8f9da6;
+        }
+
+        #war-slider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            background: black;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #0e2433;
+        }
+
+       
+        #war-label {
+            position: absolute;
+            top: 40px; 
+            left: 10px;
+            font-size: 16px;
+            font-family: "Courier New", monospace;
+            font-weight: bold;
+            color: #0e2433;
+            background: rgba(255, 255, 255, 0.8); 
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .mapboxgl-popup-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+            background-color: #fff;
+ 	    background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .mapboxgl-popup-tip {
+            background-color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <label for="war-slider">Select Conflict:</label>
+    <input id="war-slider" type="range" min="0" max="6" step="1">
+    <p id="war-label">All Conflicts</p>
+
+    <div id="map"></div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoia2F0aWVseW5uZDE3IiwiYSI6ImNtN3c3bWRndTAycDkybG9xdHZmbWdzamsifQ.igN-iitJkhAaHdldHcPW5Q';
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/katielynnd17/cm8xw0v86001201t10xdd47jv',
+            center: [-79.466771, 31.935131],
+            zoom: 3.30
+        });
+
+        map.on('load', function () {
+            map.addLayer({
+                'id': 'Shipwreck_locations_data',
+                'type': 'circle',
+                'source': {
+                    type: 'vector',
+                    url: 'mapbox://katielynnd17.3j79hbn9'
+                },
+                'source-layer': 'Shipwreck_Data_4-55okbi',
+                'layout': {
+                    'visibility': 'visible'
+                },
+                'paint': {
+                    'circle-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['to-number', ['get', 'Casualties (%)']],
+                        0.0, '#ffbaba',
+                        0.2, '#ff7878',
+                        0.4, '#ff3f3f',
+                        0.6, '#dc0000',
+                        0.8, '#c40000',
+                        1.0, '#720000'
+                    ],
+                    'circle-opacity': 0.9,
+                    'circle-stroke-width': {
+                        stops: [[8, 0.5], [100, 5], [500, 10]]
+                    },
+                    'circle-stroke-color': '#000000',
+                    'circle-stroke-opacity': 0.7,
+                    'circle-radius': {
+                        property: 'Casualties (#)',
+                        stops: [
+                            [{ zoom: 9, value: 0 }, 5],
+                            [{ zoom: 9, value: 10 }, 10],
+                            [{ zoom: 9, value: 500 }, 15],
+                            [{ zoom: 12, value: 0 }, 7],
+                            [{ zoom: 12, value: 10 }, 50],
+                            [{ zoom: 12, value: 500 }, 100],
+                            [{ zoom: 16, value: 0 }, 10],
+                            [{ zoom: 16, value: 10 }, 100],
+                            [{ zoom: 16, value: 500 }, 200]
+                        ]
+                    }
+                }
+            });
+
+            let hoverPopup;
+
+            map.on('mouseenter', 'Shipwreck_locations_data', function (e) {
+                map.getCanvas().style.cursor = 'pointer';
+
+                if (hoverPopup) hoverPopup.remove();
+
+                hoverPopup = new mapboxgl.Popup({
+                    closeButton: false,
+                    closeOnClick: false
+                })
+                    .setLngLat(e.lngLat)
+                    .setHTML(`
+                        <strong>Shipwreck:</strong> ${e.features[0].properties['Name of Shipwreck']}<br>
+                        <strong>Year:</strong> ${e.features[0].properties['Year']}<br>
+                        <strong>Casualties:</strong> ${e.features[0].properties['Casualties (#)']}<br>
+                        <strong>Death Rate:</strong> ${e.features[0].properties['Casualties (%)']}<br>
+                        <strong>Conflict:</strong> ${e.features[0].properties['Conflict']}
+                    `)
+                    .addTo(map);
+            });
+
+            map.on('mouseleave', 'Shipwreck_locations_data', function () {
+                map.getCanvas().style.cursor = '';
+
+                if (hoverPopup) hoverPopup.remove();
+            });
+
+        });
+
+        const wars = [
+            "All Conflicts",
+            "Pirates",
+            "War of 1812 (1812-1815)",
+            "Revolutionary War (1775-1783)",
+            "Civil War (1861-1865)",
+            "WWI (1917-1918)",
+            "WWII (1939-1945)"
+        ];
+
+        const slider = document.getElementById("war-slider");
+        const label = document.getElementById("war-label");
+
+        slider.addEventListener("input", function () {
+            const selectedIndex = parseInt(slider.value);
+            label.innerText = wars[selectedIndex];
+
+            if (selectedIndex === 0) {
+                map.setFilter("Shipwreck_locations_data", null);
+            } else {
+                map.setFilter("Shipwreck_locations_data", ["==", ["get", "Conflict"], wars[selectedIndex]]);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
